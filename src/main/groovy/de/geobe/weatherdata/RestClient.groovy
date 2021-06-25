@@ -23,7 +23,7 @@
 
 package de.geobe.weatherdata
 
-import de.geobe.solar.SolarPosition
+import de.geobe.configuration.Configurator
 import groovy.json.JsonSlurper
 
 import java.time.Instant
@@ -33,7 +33,7 @@ import java.time.format.DateTimeFormatter
 class RestClient {
 
     def readRadiationForecast(){
-        def cfg = SolarPosition.readConfig('config.json')
+        def cfg = Configurator.readConfig('config.json')
         def lat = cfg.location.lat
         def lon = cfg.location.lon
         def baseurl = cfg.weather.baseurl
