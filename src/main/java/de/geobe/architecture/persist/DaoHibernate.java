@@ -17,6 +17,10 @@ import org.hibernate.Transaction;
 import org.hibernate.criterion.Example;
 import org.hibernate.criterion.MatchMode;
 
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Root;
+
 /**
  * Encapsulate all database operations with hibernate persistence layer
  * 
@@ -203,6 +207,9 @@ public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
 			qbe.excludeProperty(excludedProperty);
 		}
 		Session s = dbAccess.getActiveSession();
+		CriteriaBuilder criteriaBuilder = s.getCriteriaBuilder();
+		CriteriaQuery<PersistType> criteria = criteriaBuilder.createQuery(accessedType);
+		Root<PersistType> root = criteria.from(accessedType);
 		return (List<PersistType>) s.createCriteria(accessedType).add(qbe)
 				.list();
 	}

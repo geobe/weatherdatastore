@@ -6,13 +6,18 @@ package de.geobe.architecture.persist;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
+import org.hibernate.boot.Metadata;
+import org.hibernate.boot.MetadataBuilder;
+import org.hibernate.boot.MetadataSources;
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
+import org.hibernate.service.ServiceRegistry;
+
+import java.util.List;
 
 /**
  * @author: georg beier
  */
-//@SuppressWarnings("deprecation")
-@SuppressWarnings("deprecation")
 public class DbHibernate {
 
 	// Attribute Definitions
@@ -76,14 +81,15 @@ public class DbHibernate {
 		return "(activeSession: " + getActiveSession() + ")";
 	}
 
-	static {
-		try {
-			configuration = new org.hibernate.cfg.Configuration();
-			configuration.configure("hibernate.cfg.xml");
-			sessionFactory = configuration.buildSessionFactory();
-		} catch (Exception ex) {
-			ex.printStackTrace();
-			throw new RuntimeException("Hibernate Exception", ex);
-		}
+	public DbHibernate(List<String> fqcns) {
+		StandardServiceRegistryBuilder serviceRegistryBuilder = new StandardServiceRegistryBuilder();
+		serviceRegistryBuilder.configure();
+		ServiceRegistry serviceRegistry = serviceRegistryBuilder.build();
+		MetadataSources metadataSources = new MetadataSources(serviceRegistry);
+		fqcns.stream().forEach(metadataSources::addAnnotatedClassName);
+		MetadataBuilder metadataBuilder = metadataSources.getMetadataBuilder();
+		Metadata metadata = metadataBuilder.build();
+		sessionFactory = metadata.buildSessionFactory();
 	}
+
 }
