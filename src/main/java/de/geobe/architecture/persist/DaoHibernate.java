@@ -4,11 +4,6 @@
 package de.geobe.architecture.persist;
 
 // Insert any imports here
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 
 import org.hibernate.Query;
 import org.hibernate.Session;
@@ -17,9 +12,11 @@ import org.hibernate.Transaction;
 import org.hibernate.criterion.Example;
 import org.hibernate.criterion.MatchMode;
 
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Root;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Encapsulate all database operations with hibernate persistence layer
@@ -29,6 +26,7 @@ import javax.persistence.criteria.Root;
  * @param <PersistType>
  *            a persistet type that is handled by this dao
  */
+@SuppressWarnings("deprecated")
 public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
 
 	// Attribute Definitions
@@ -196,9 +194,12 @@ public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
 	 * 
 	 * @see de.geobe.architecture.persist.DataAccess#findByExample(java.lang.Object,
 	 *      java.util.Collection)
-	 * also starts a transaction, if none is active
+	 * also starts a transaction, if none is active<br>
+	 * We are using the deprecated hibernate criteria as the recommended JPA criteria solution
+	 * is really arcane and unhandy for Query By Example implementation.
 	 */
 	@SuppressWarnings("unchecked")
+	@Deprecated
 	public List<PersistType> findByExample(PersistType sample,
 			Collection<String> excluded) {
 		Example qbe = Example.create(sample).ignoreCase().excludeZeroes()
@@ -207,9 +208,9 @@ public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
 			qbe.excludeProperty(excludedProperty);
 		}
 		Session s = dbAccess.getActiveSession();
-		CriteriaBuilder criteriaBuilder = s.getCriteriaBuilder();
-		CriteriaQuery<PersistType> criteria = criteriaBuilder.createQuery(accessedType);
-		Root<PersistType> root = criteria.from(accessedType);
+//		CriteriaBuilder criteriaBuilder = s.getCriteriaBuilder();
+//		CriteriaQuery<PersistType> criteria = criteriaBuilder.createQuery(accessedType);
+//		Root<PersistType> root = criteria.from(accessedType);
 		return (List<PersistType>) s.createCriteria(accessedType).add(qbe)
 				.list();
 	}

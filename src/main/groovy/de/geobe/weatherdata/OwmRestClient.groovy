@@ -30,18 +30,15 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-class RestClient {
+class OwmRestClient {
 
-    def readRadiationForecast(){
+    def readRadiationForecast(int index = 3){
         def cfg = Configurator.readConfig('config.json')
         def lat = cfg.location.lat
         def lon = cfg.location.lon
         def baseurl = cfg.weather.baseurl
         def verbs = cfg.weather.verbs
         def appid = cfg.weather.apikey
-
-        def zoneId = ZoneId.systemDefault()
-        def timeformat = DateTimeFormatter.ofPattern("dd.MM.yy  HH.mm")
 
         def slurper = new JsonSlurper()
         def query = {String verb ->
@@ -52,18 +49,21 @@ class RestClient {
             slurper.parse(reader)
         }
 
-        def response = query verbs[3]
+        def response = query verbs[index]
+        response
+    }
+
+    static void main(String[] args) {
+        def zoneId = ZoneId.systemDefault()
+        def timeformat = DateTimeFormatter.ofPattern("dd.MM.yy  HH.mm")
+
+        def response = new OwmRestClient().readRadiationForecast(2)
         List list = response.list.each{ Map entry ->
             def time = entry.dt
             def rad = entry.radiation
             def pot = Instant.ofEpochSecond(time).atZone(zoneId).format(timeformat)
             println "At $pot: $rad"
         }
-
-    }
-
-    static void main(String[] args) {
-        new RestClient().readRadiationForecast()
     }
 }
 
