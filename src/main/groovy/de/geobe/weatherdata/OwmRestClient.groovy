@@ -32,33 +32,40 @@ import java.time.format.DateTimeFormatter
 
 class OwmRestClient {
 
-    def readRadiationForecast(int index = 3){
+    static int ONE_CALL = 0
+    static int POLLUTION = 1
+    static int IRRADIANCE = 2
+    static int IRRADIANCE_FORECAST = 3
+
+    def readRadiationForecast(int index = IRRADIANCE_FORECAST) {
         def cfg = Configurator.readConfig('config.json')
         def lat = cfg.location.lat
         def lon = cfg.location.lon
         def baseurl = cfg.weather.baseurl
-        def verbs = cfg.weather.verbs
+        def apis = cfg.weather.apis
+        def verb = apis[index].verb
+        def param = apis[index]?.param
         def appid = cfg.weather.apikey
 
-        def slurper = new JsonSlurper()
-        def query = {String verb ->
-            def uri = "$baseurl$verb?lat=$lat&lon=$lon&appid=$appid".toString()
-            def connection = new URL(uri).openConnection()
-            assert connection.responseCode == HttpURLConnection.HTTP_OK
-            def reader = connection.inputStream.newReader()
-            slurper.parse(reader)
-        }
-
-        def response = query verbs[index]
+        def response = query (baseurl, verb, lat, lon, param, appid)
         response
+    }
+
+    def query(def baseurl, String verb, def lat, def lon, String param, String appid) {
+        def slurper = new JsonSlurper()
+        def uri = "$baseurl$verb?lat=$lat&lon=$lon${param ? '&' + param : ''}&appid=$appid".toString()
+        def connection = new URL(uri).openConnection()
+        assert connection.responseCode == HttpURLConnection.HTTP_OK
+        def reader = connection.inputStream.newReader()
+        slurper.parse(reader)
     }
 
     static void main(String[] args) {
         def zoneId = ZoneId.systemDefault()
         def timeformat = DateTimeFormatter.ofPattern("dd.MM.yy  HH.mm")
 
-        def response = new OwmRestClient().readRadiationForecast(2)
-        List list = response.list.each{ Map entry ->
+        def response = new OwmRestClient().readRadiationForecast(ONE_CALL)
+        List list = response.list.each { Map entry ->
             def time = entry.dt
             def rad = entry.radiation
             def pot = Instant.ofEpochSecond(time).atZone(zoneId).format(timeformat)

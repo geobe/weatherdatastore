@@ -1,12 +1,15 @@
 package de.geobe.weatherdata
 
+import de.geobe.architecture.persist.DaoHibernate
+import de.geobe.architecture.persist.DbHibernate
+
 class OwmIrradianceBuilder {
 
     def buildEntityList(def apiResponse) {
         def now = System.currentTimeSeconds()
         List list = apiResponse.list.collect { Map entry ->
             def rad = entry.radiation
-            if(rad.dni_cs > 1.0) {
+            if (rad.dni_cs > 1.0 || rad.dhi_cs > 1.0) {
                 new Irradiance(
                         retrievedAt: now,
                         forecastTime: entry.dt,
@@ -18,12 +21,19 @@ class OwmIrradianceBuilder {
                         clearSkyDiffuseHorizontal: rad.dhi_cs
                 )
             }
-        }.findAll {it}
+        }.findAll { it }
     }
 
     static void main(String[] args) {
-        def response = new OwmRestClient().readRadiationForecast(3)
-        def entities = new OwmIrradianceBuilder().buildEntityList(response)
-        entities.each {println it}
+        List<Irradiance> irradiances
+        def response = new OwmRestClient().readRadiationForecast(OwmRestClient.IRRADIANCE_FORECAST)
+        irradiances = new OwmIrradianceBuilder().buildEntityList(response)
+
+        DbHibernate db = new DbHibernate(['de.geobe.weatherdata.Weather', 'de.geobe.weatherdata.Irradiance'])
+
+        def irrDao = new DaoHibernate<Irradiance>(Irradiance.class, db)
+        irradiances.each { irrDao.save(it) }
+        irrDao.closeSession()
+        irradiances.each { println it }
     }
 }
