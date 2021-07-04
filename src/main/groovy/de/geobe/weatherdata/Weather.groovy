@@ -5,7 +5,7 @@ import javax.persistence.Entity
 @Entity
 class Weather extends TrackedData {
     Float temperature
-    Float fealsLike
+    Float feelsLike
     Float pressure
     Float humidity
     Float dewPoint
@@ -22,7 +22,7 @@ class Weather extends TrackedData {
     @Override
     String toString() {
         return """${super.toString()}
-\ttemp $temperature° feels $fealsLike° p $pressure hPa \
+\ttemp $temperature° feels $feelsLike° p $pressure hPa \
 rain ${Math.round(precipitationProbability * 100)}% $hourlyRain mm
 \thumidity $humidity% dew pt $dewPoint° clouds $clouds% uvi $uvIndex
 \twind $windSpeed m/s gust $windGust direction $windDegrees"""

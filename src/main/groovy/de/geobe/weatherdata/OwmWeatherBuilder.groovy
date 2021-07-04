@@ -11,10 +11,10 @@ class OwmWeatherBuilder {
         def hourly = apiResponse.hourly
         List list = hourly.collect { Map weather ->
             new Weather(
-                    retrievedAt: now,
+                    issuedAt: now,
                     forecastTime: weather.dt,
                     temperature: weather.temp,
-                    fealsLike: weather.feels_like,
+                    feelsLike: weather.feels_like,
                     pressure: weather.pressure,
                     humidity: weather.humidity,
                     dewPoint: weather.dew_point,

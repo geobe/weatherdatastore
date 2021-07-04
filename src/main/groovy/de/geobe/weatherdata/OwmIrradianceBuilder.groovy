@@ -11,7 +11,7 @@ class OwmIrradianceBuilder {
             def rad = entry.radiation
             if (rad.dni_cs > 1.0 || rad.dhi_cs > 1.0) {
                 new Irradiance(
-                        retrievedAt: now,
+                        issuedAt: now,
                         forecastTime: entry.dt,
                         globalHorizontal: rad.ghi,
                         directNormal: rad.dni,
