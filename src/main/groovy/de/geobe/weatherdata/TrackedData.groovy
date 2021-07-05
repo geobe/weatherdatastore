@@ -26,8 +26,8 @@ abstract class TrackedData {
 
     @Override
     String toString() {
-        return "retrieved ${longAsTime(issuedAt)}, " +
-                "${hoursAhead()} hours forecast for ${longAsTime(forecastTime)}"
+        return "${longAsTime(forecastTime)} forecast, ${hoursAhead()} hours ahead, " +
+                "issued at ${longAsTime(issuedAt)}"
     }
 
     def hoursAhead() {

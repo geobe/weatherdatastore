@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Periodically get weather data from an internet site and save it to the database.
- * Data access should be shortly before a typical update time, e.g. 2 minutes before every hour.
+ * Data access should be short after a typical update time, e.g. 2 minutes after every hour.
  */
 class PeriodicAcquisition {
 

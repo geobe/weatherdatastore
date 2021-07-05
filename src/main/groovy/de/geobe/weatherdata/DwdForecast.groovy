@@ -34,7 +34,7 @@ class DwdForecast extends TrackedData {
     String toString() {
         return """${super.toString()}
 \ttemp ${temperature ? String.format('% 5.1f', temperature - 273.15) : '???'} °C, p ${pressure ? pressure / 100.0 : '???'} hPa \
-rain $hourlyPrecipitation mm, clouds $totalCloudCover %  irradiance $globalIrradiance kJ/m²\
+rain $hourlyPrecipitation mm, clouds $totalCloudCover %, sun $sunshineDuration s,  irradiance $globalIrradiance kJ/m²\
 """
     }
 }
