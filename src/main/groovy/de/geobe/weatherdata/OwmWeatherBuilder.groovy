@@ -36,14 +36,14 @@ class OwmWeatherBuilder {
         def response = new OwmRestClient().readRadiationForecast(OwmRestClient.ONE_CALL)
         weatherForcasts = new OwmWeatherBuilder().buildEntityList(response)
 
-        DbHibernate db = new DbHibernate(['de.geobe.weatherdata.Weather', 'de.geobe.weatherdata.Irradiance'])
-        def weatherDao = new DaoHibernate<Weather>(Weather.class, db)
+//        DbHibernate db = new DbHibernate(['de.geobe.weatherdata.Weather', 'de.geobe.weatherdata.Irradiance'])
+//        def weatherDao = new DaoHibernate<Weather>(Weather.class, db)
+//
+//        weatherForcasts.each{weatherDao.save(it)}
+//        weatherDao.closeSession()
 
-        weatherForcasts.each{weatherDao.save(it)}
-        weatherDao.closeSession()
-
-//        for (def i = 10; i < Math.min(24, weatherForcasts.size()); i++) {
-//            println weatherForcasts[i]
-//        }
+        for (def i = 10; i < Math.min(24, weatherForcasts.size()); i++) {
+            println weatherForcasts[i]
+        }
     }
 }

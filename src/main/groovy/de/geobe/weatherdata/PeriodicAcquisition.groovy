@@ -38,6 +38,8 @@ class PeriodicAcquisition {
         future = executor.scheduleAtFixedRate(testTask, delay, period, unit)
     }
 
+    def
+
     static void main(String[] args) {
         def time = System.currentTimeMillis()
         def future = new PeriodicAcquisition().execute()

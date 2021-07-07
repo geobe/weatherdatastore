@@ -1,5 +1,7 @@
 package de.geobe.weatherdata
 
+import de.geobe.architecture.persist.DaoHibernate
+import de.geobe.architecture.persist.DbHibernate
 import groovy.json.JsonSlurper
 
 import javax.persistence.Entity
@@ -32,6 +34,7 @@ class DwdMosmixStation {
 
 class DwdStationReader {
     static stationFile = 'dwd-mosmix-stations-degrees.json'
+    static germanStationsFile = 'german-mosmix-stations-degrees.json'
 
     List<DwdMosmixStation> stations = new ArrayList<>()
 
@@ -41,8 +44,8 @@ class DwdStationReader {
         new JsonSlurper().parse(stream)
     }
 
-    def buildStations() {
-        def rawData = readStationFile()
+    def buildStations(def filename = stationFile) {
+        def rawData = readStationFile(filename)
         rawData.each { Map rawSt ->
             def station = new DwdMosmixStation(
                     stationId: rawSt.id,
@@ -58,9 +61,16 @@ class DwdStationReader {
 
     static void main(String[] args) {
         def r = new DwdStationReader()
-        r.buildStations()
+        r.buildStations(germanStationsFile)
+
+        DbHibernate db = new DbHibernate(['de.geobe.weatherdata.DwdMosmixStation'])
+
+        DaoHibernate<DwdMosmixStation> stationDao = new DaoHibernate<>(DwdMosmixStation.class, db)
+
         r.stations.each {
-            println it
+            if (!stationDao.find('from DwdMosmixStation s where s.stationId = :sid', [sid: it.stationId]))
+                stationDao.save it
         }
+        stationDao.closeSession()
     }
 }

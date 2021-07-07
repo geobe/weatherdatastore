@@ -52,7 +52,7 @@ public interface DataAccess<PersistType> {
 
 	/**
 	 * executes hibernate query with parameters <br>
-	 * (e.g. from person p with p.name = :name)
+	 * (e.g. from person p where p.name = :name)
 	 * 
 	 * @param query
 	 *            HQL query string containing named parameters in hibernate

@@ -3,11 +3,14 @@ package de.geobe.weatherdata
 import groovy.xml.XmlSlurper
 import groovy.xml.slurpersupport.GPathResult
 
+import javax.xml.stream.XMLEventReader
+import javax.xml.stream.XMLInputFactory
+import javax.xml.stream.events.Attribute
 import java.time.Instant
 import java.util.zip.ZipInputStream
 
 class DwdXmlClient {
-    static namespaces = [
+    static final namespaces = [
             dwd : "https://opendata.dwd.de/weather/lib/pointforecast_dwd_extension_V1_0.xsd",
             gx  : "http://www.google.com/kml/ext/2.2",
             xal : "urn:oasis:names:tc:ciq:xsdschema:xAL:2.0",
@@ -15,24 +18,36 @@ class DwdXmlClient {
             atom: "http://www.w3.org/2005/Atom"
     ]
 
-    static MosmixSUrl =
+    static final MosmixSUrl =
             'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/MOSMIX_S_LATEST_240.kmz'
-    static MosmixLUrl =
+    static final MosmixLUrl =
             'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/10577/kml/MOSMIX_L_LATEST_10577.kmz'
 
-    def slurper = new XmlSlurper()
+    static final String ISSUE_TIME = 'IssueTime'
+    static final String FORECAST_TIME_STEPS = 'ForecastTimeSteps'
+    static final String PLACEMARK = 'Placemark'
+    static final String TIME_STEP = 'TimeStep'
+    static final int MAX_TIME_STEPS = 120
+    static final String EXTENDED_DATA = 'ExtendedData'
+    static final String FORECAST = 'Forecast'
 
-    def useSampleData(def filename = 'samples/MOSMIX_L_2021070215_10577.kml') {
+//    def slurper = new XmlSlurper()
+
+    def xmlInputFactory = XMLInputFactory.newInstance()
+
+    def useSampleData(def filename = 'samples/MOSMIX_L_2021070215_10577.kml', String placemark = '10577') {
         URL xmlUrl = DwdXmlClient.classLoader.getResource(filename)
-        File xmlFile = new File(xmlUrl.getPath())
-        def root = slurper.parse(xmlFile)
-        parseDwdMosMix(root)
+        def inStream = xmlUrl.openStream()
+        def eventReader = xmlInputFactory.createXMLEventReader(inStream)
+        def result = staxDwdMosMix(eventReader, placemark)
+        inStream.close()
+        result
     }
 
-    def useWebData(def url = MosmixLUrl, String placemarkName = '10577') {
+    def useWebData(def url = MosmixLUrl, String placemark = '10577') {
         URL webUrl = new URL(url)
-        def rawStream = webUrl.newInputStream()
-        parseZippedStream(rawStream, placemarkName)
+        def rawStream = webUrl.openStream()
+        parseZippedStream(rawStream, placemark)
     }
 
     def useZippedSampleData(def filename = 'samples/MOSMIX_L_LATEST_10577.kmz', String placemarkName = '10577') {
@@ -41,57 +56,164 @@ class DwdXmlClient {
         parseZippedStream(rawStream, placemarkName)
     }
 
-    def parseZippedStream(BufferedInputStream rawStream, String placemarkName) {
+    def parseZippedStream(InputStream rawStream, String placemarkName) {
         def zipInStream = new ZipInputStream(rawStream)
         if (zipInStream.getNextEntry()) {
-            def root = slurper.parse(zipInStream)
-            def result = parseDwdMosMix(root, placemarkName)
+            def eventReader = xmlInputFactory.createXMLEventReader(zipInStream)
+            def result = staxDwdMosMix(eventReader, placemarkName)
             zipInStream.close()
             result
         }
     }
 
-    List<DwdForecast> parseDwdMosMix(GPathResult root, String placemarkName = '10577') {
-        List<DwdForecast> forecasts = new ArrayList<>()
-        root.declareNamespace(namespaces)
-        GPathResult productDefinition = root.'kml:Document'.'kml:ExtendedData'.'dwd:ProductDefinition'
-        productDefinition.declareNamespace(namespaces)
-        def issued = productDefinition.'dwd:IssueTime'.text()
-        def issuedAt = Instant.parse(issued).getEpochSecond()
-        GPathResult timesteps = productDefinition.'dwd:ForecastTimeSteps'
-        timesteps.declareNamespace(namespaces)
-        for(GPathResult timestep : timesteps.'dwd:TimeStep') {
-            def forecastTime = Instant.parse(timestep.text()).getEpochSecond()
-            if((forecastTime - issuedAt) > 72 * 3600) {
-                break
-            }
-            def forecast = new DwdForecast(issuedAt: issuedAt, forecastTime: forecastTime)
-            forecasts << forecast
-        }
-
-        root.'kml:Document'.'kml:Placemark'.find {
-            it.'kml:name'.text() == placemarkName
-        }.each { GPathResult placemark ->
-            println "found ${placemark.'kml:description'}"
-            placemark.'kml:ExtendedData'.'dwd:Forecast'.findAll {
-                it.'@dwd:elementName' in DwdForecast.xmlMapping.keySet()
-            }.each {
-                def n = it.'@dwd:elementName'
-                String v = it.'dwd:value'
-                def vals = v.split()
-                def attribute = DwdForecast.xmlMapping[n]
-                for(int i = 0; forecasts[i] && i < vals.size(); i++) {
-                    String entry = vals[i]
-                    forecasts[i].(attribute) = (entry == '-' ? null : Float.parseFloat(entry))
+    List<DwdForecast> staxDwdMosMix(XMLEventReader reader, String placemark) {
+        List<DwdForecast> forecasts
+        Long issueTime
+        def hourglass = ['/', '-', '\\', '|']
+        def cnt = 0
+        while (reader.hasNext()) {
+            def element = reader.nextEvent()
+            if (element.isStartElement()) {
+                def e = element.asStartElement()
+                def n = e.name
+                if (n.prefix == 'dwd' && n.localPart == ISSUE_TIME) {
+                    // handle issue time
+                    print "\b${hourglass[++cnt%4]}"
+                    issueTime = handleIssueTime(reader)
+                } else if (n.prefix == 'dwd' && n.localPart == FORECAST_TIME_STEPS) {
+                    // handle time steps
+                    print "\b${hourglass[++cnt%4]}"
+                    forecasts = handleForecastTimeSteps(reader, issueTime)
+                } else if (n.prefix == 'kml' && n.localPart == PLACEMARK) {
+                    // step into placemark
+                    print "\b${hourglass[++cnt%4]}"
+                    handlePlacemarks(reader, placemark, forecasts)
                 }
             }
         }
         forecasts
     }
 
+    def handleIssueTime(XMLEventReader reader) {
+        Long issued
+        while (reader.hasNext()) {
+            def element = reader.nextEvent()
+            if (element.isEndElement()) {
+                def n = element.asEndElement().name
+                assert n.prefix == 'dwd' && n.localPart == ISSUE_TIME
+                break
+            } else if (element.isCharacters()) {
+                def chars = element.asCharacters().data
+                issued = utc2long(chars)
+            }
+        }
+        issued
+    }
+
+    def handleForecastTimeSteps(XMLEventReader reader, Long issueTime) {
+        List<DwdForecast> forecasts = new ArrayList<>()
+        List<Long> steps = new ArrayList<>()
+        while (reader.hasNext()) {
+            def element = reader.nextEvent()
+            if (element.isEndElement()) {
+                def n = element.asEndElement().name
+                if (n.prefix == 'dwd' && n.localPart == FORECAST_TIME_STEPS) {
+                    break
+                } else {
+                    assert n.prefix == 'dwd' && n.localPart == TIME_STEP
+                }
+            } else if (element.isStartElement()) {
+                def n = element.asStartElement().name
+                assert n.prefix == 'dwd' && n.localPart == TIME_STEP
+            } else if (element.isCharacters()) {
+                def chars = element.asCharacters().data
+                if (!chars.matches('\\s*') && steps.size() < MAX_TIME_STEPS) {
+                    steps << utc2long(chars)
+                }
+            }
+        }
+        steps.each {
+            forecasts << new DwdForecast(issuedAt: issueTime, forecastTime: it)
+        }
+        forecasts
+    }
+
+    def handlePlacemarks(XMLEventReader reader, String placemark, List<DwdForecast> forecasts) {
+        boolean foundPlace = false
+        while (reader.hasNext()) {
+            def element = reader.nextEvent()
+            if (element.isEndElement()) {
+                def n = element.asEndElement().name
+                if (n.prefix == 'kml' && n.localPart == PLACEMARK) {
+                    break
+                }
+            } else if (element.isStartElement()) {
+                def n = element.asStartElement().name
+                if (n.prefix == 'kml' && n.localPart == 'name') {
+                    def pm = reader.nextEvent()
+                    assert pm.isCharacters()
+                    if (placemark == pm.asCharacters().data) {
+                        foundPlace = true
+                    }
+                } else if (foundPlace && n.prefix == 'kml' && n.localPart == EXTENDED_DATA) {
+                    handleForecasts(reader, forecasts)
+                    foundPlace = false
+                }
+            }
+        }
+    }
+
+    def handleForecasts(XMLEventReader reader, List<DwdForecast> forecasts) {
+        while (reader.hasNext()) {
+            def element = reader.nextEvent()
+            if (element.isEndElement()) {
+                def n = element.asEndElement().name
+                if (n.prefix == 'kml' && n.localPart == EXTENDED_DATA) {
+                    break
+                }
+            } else if (element.isStartElement()) {
+                def n = element.asStartElement().name
+                if (n.prefix == 'dwd' && n.localPart == FORECAST) {
+                    def attributeValue = element.asStartElement().attributes[0].value
+                    if (attributeValue in DwdForecast.xmlMapping.keySet()) {
+                        parseValue(reader, attributeValue, forecasts)
+                    }
+                }
+            }
+        }
+    }
+
+    def parseValue(XMLEventReader reader, String attributeKey, List<DwdForecast> dwdForecasts) {
+        while (reader.hasNext()) {
+            def element = reader.nextEvent()
+            if (element.isEndElement()) {
+                def n = element.asEndElement().name
+                if (n.prefix == 'dwd' && n.localPart == FORECAST) {
+                    break
+                }
+            } else if (element.isStartElement()) {
+                def n = element.asStartElement().name
+                if (n.prefix == 'dwd' && n.localPart == 'value') {
+                    def data = reader.nextEvent().asCharacters().data
+                    def values = data.split()
+                    def attribute = DwdForecast.xmlMapping.(attributeKey)
+                    dwdForecasts.eachWithIndex { DwdForecast forecast, int i ->
+                        forecast.(attribute) = (values[i] == '-' ? null : Float.parseFloat(values[i]))
+                    }
+                }
+            }
+        }
+
+    }
+
+    long utc2long(issued) {
+        Instant.parse(issued).getEpochSecond()
+    }
+
     static void main(String[] args) {
 //        def forecasts = new DwdXmlClient().useZippedSampleData('samples/MOSMIX_S_LATEST_240.kmz')
-        def forecasts = new DwdXmlClient().useWebData(MosmixSUrl, 'EW020')
+//        def forecasts = new DwdXmlClient().useSampleData()
+        def forecasts = new DwdXmlClient().useWebData(MosmixSUrl)
         forecasts.each { println it }
     }
 }

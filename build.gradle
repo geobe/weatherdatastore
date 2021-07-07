@@ -1,4 +1,5 @@
 plugins {
+    id 'application'
     id 'groovy'
     id 'java'
 }
@@ -9,6 +10,10 @@ version '1.0-SNAPSHOT'
 repositories {
     mavenCentral()
 }
+
+apply from: 'https://raw.githubusercontent.com/geobe/Java2PiWithIdea/master/crossdev.gradle'
+
+mainClassName = 'de.geobe.weatherdata.DwdXmlClient'
 
 dependencies {
     implementation 'org.codehaus.groovy:groovy-all:3.0.8'
