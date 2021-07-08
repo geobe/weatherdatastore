@@ -1,11 +1,8 @@
 package de.geobe.weatherdata
 
-import groovy.xml.XmlSlurper
-import groovy.xml.slurpersupport.GPathResult
 
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.XMLInputFactory
-import javax.xml.stream.events.Attribute
 import java.time.Instant
 import java.util.zip.ZipInputStream
 
@@ -35,7 +32,7 @@ class DwdXmlClient {
 
     def xmlInputFactory = XMLInputFactory.newInstance()
 
-    def useSampleData(def filename = 'samples/MOSMIX_L_2021070215_10577.kml', String placemark = '10577') {
+    def fetchSampleData(def filename = 'samples/MOSMIX_L_2021070215_10577.kml', String placemark = '10577') {
         URL xmlUrl = DwdXmlClient.classLoader.getResource(filename)
         def inStream = xmlUrl.openStream()
         def eventReader = xmlInputFactory.createXMLEventReader(inStream)
@@ -44,13 +41,13 @@ class DwdXmlClient {
         result
     }
 
-    def useWebData(def url = MosmixLUrl, String placemark = '10577') {
+    def fetchWebData(def url = MosmixLUrl, String placemark = '10577') {
         URL webUrl = new URL(url)
         def rawStream = webUrl.openStream()
         parseZippedStream(rawStream, placemark)
     }
 
-    def useZippedSampleData(def filename = 'samples/MOSMIX_L_LATEST_10577.kmz', String placemarkName = '10577') {
+    def fetchZippedSampleData(def filename = 'samples/MOSMIX_L_LATEST_10577.kmz', String placemarkName = '10577') {
         URL zipUrl = DwdXmlClient.classLoader.getResource(filename)
         def rawStream = zipUrl.newInputStream()
         parseZippedStream(rawStream, placemarkName)
@@ -213,7 +210,7 @@ class DwdXmlClient {
     static void main(String[] args) {
 //        def forecasts = new DwdXmlClient().useZippedSampleData('samples/MOSMIX_S_LATEST_240.kmz')
 //        def forecasts = new DwdXmlClient().useSampleData()
-        def forecasts = new DwdXmlClient().useWebData(MosmixSUrl)
+        def forecasts = new DwdXmlClient().fetchWebData(MosmixSUrl)
         forecasts.each { println it }
     }
 }

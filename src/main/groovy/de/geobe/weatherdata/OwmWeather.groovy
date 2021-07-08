@@ -2,8 +2,8 @@ package de.geobe.weatherdata
 
 import javax.persistence.Entity
 
-@Entity
-class Weather extends TrackedData {
+//@Entity
+class OwmWeather extends TrackedData {
     Float temperature
     Float feelsLike
     Float pressure

@@ -1,8 +1,5 @@
 package de.geobe.weatherdata
 
-import de.geobe.architecture.persist.DaoHibernate
-import de.geobe.architecture.persist.DbHibernate
-
 class OwmWeatherBuilder {
 
     def buildEntityList(def apiResponse) {
@@ -10,7 +7,7 @@ class OwmWeatherBuilder {
         def now = current.dt
         def hourly = apiResponse.hourly
         List list = hourly.collect { Map weather ->
-            new Weather(
+            new OwmWeather(
                     issuedAt: now,
                     forecastTime: weather.dt,
                     temperature: weather.temp,
@@ -32,7 +29,7 @@ class OwmWeatherBuilder {
     }
 
     static void main(String[] args) {
-        List<Weather> weatherForcasts
+        List<OwmWeather> weatherForcasts
         def response = new OwmRestClient().readRadiationForecast(OwmRestClient.ONE_CALL)
         weatherForcasts = new OwmWeatherBuilder().buildEntityList(response)
 

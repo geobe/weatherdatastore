@@ -13,7 +13,7 @@ repositories {
 
 apply from: 'https://raw.githubusercontent.com/geobe/Java2PiWithIdea/master/crossdev.gradle'
 
-mainClassName = 'de.geobe.weatherdata.DwdXmlClient'
+mainClassName = 'de.geobe.weatherdata.WeatherDb'
 
 dependencies {
     implementation 'org.codehaus.groovy:groovy-all:3.0.8'

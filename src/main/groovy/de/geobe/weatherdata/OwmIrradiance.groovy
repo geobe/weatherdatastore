@@ -2,8 +2,8 @@ package de.geobe.weatherdata
 
 import javax.persistence.Entity
 
-@Entity
-class Irradiance extends TrackedData {
+//@Entity
+class OwmIrradiance extends TrackedData {
     Float globalHorizontal
     Float directNormal
     Float diffuseHorizontal
