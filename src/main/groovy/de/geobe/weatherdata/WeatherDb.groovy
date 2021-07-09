@@ -19,6 +19,7 @@ class WeatherDb {
     def dwdXmlClient = new DwdXmlClient()
     def weatherDb
     DaoHibernate<DwdForecast> forecastDao
+    def startupAcquisition = true
 
     WeatherDb() {
         runServer()
@@ -51,15 +52,22 @@ class WeatherDb {
             forecastDao.closeSession()
             def now = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(zoneId).format(timeformat)
             println "\ndataset saved at $now"
+            true
         } else {
             println '\ndataset already exists'
+            false
         }
     }
 
     def dwdDataAcquisitionTask = new Runnable() {
         @Override
         void run() {
-            fetchAndStoreDwdData()
+            def success = fetchAndStoreDwdData()
+            if(!startupAcquisition && !success) {
+                PeriodicAcquisition.retry(dwdDataAcquisitionTask)
+                println "try again in ${PeriodicAcquisition.period / 2} ${PeriodicAcquisition.unit.toString().toLowerCase()}"
+            }
+            startupAcquisition = false
         }
     }
 
@@ -67,7 +75,7 @@ class WeatherDb {
 
     static void main(String[] args) {
         def weatherDb = new WeatherDb()
-        def future = new PeriodicAcquisition().execute(weatherDb.dwdDataAcquisitionTask)
+        def future = PeriodicAcquisition.execute(weatherDb.dwdDataAcquisitionTask)
         def nextex = future.getDelay(TimeUnit.SECONDS)
         def now = System.currentTimeSeconds()
         def toex = now + nextex
