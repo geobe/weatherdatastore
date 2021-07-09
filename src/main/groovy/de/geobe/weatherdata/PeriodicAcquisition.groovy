@@ -21,7 +21,7 @@ class PeriodicAcquisition {
     static timeformat = DateTimeFormatter.ofPattern("dd.MM.yy  HH.mm.ss.SSS")
     static zoneId = ZoneId.systemDefault()
 
-    ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(1)
+    ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(5)
     ScheduledFuture future
 
     static testTask = new Runnable() {
@@ -33,20 +33,16 @@ class PeriodicAcquisition {
         }
     }
 
-    static dwdDataAcquisitionTask = new Runnable() {
-        @Override
-        void run() {
-
-        }
-    }
-
     def execute(Runnable task) {
-        // calculate initialDelay in milliseconds
+        // calculate everything in milliseconds
         def unitModulo =  unit.toMillis(period)
         def now = System.currentTimeMillis()
-        def delay = (unitModulo - (now % unitModulo) + unit.toMillis(dwdFullHourOffset))
+        def delay = (unitModulo - (now % unitModulo) + unit.toMillis(dwdFullHourOffset))%unitModulo
+        def periodMillis = unit.toMillis(period)
+        println "period: ${periodMillis / 1000}s, delay: ${delay/1000} s"
+        future = executor.scheduleAtFixedRate(task, delay, periodMillis, TimeUnit.MILLISECONDS)
         executor.execute(task)
-        future = executor.scheduleAtFixedRate(task, delay, period, unit)
+        future
     }
 
     def

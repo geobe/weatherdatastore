@@ -14,13 +14,13 @@ class DwdMosmixStation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
-    Long id
-    String stationId
-    String stationName
-    Float latitude
-    Float longitude
+    Long    id
+    String  stationId
+    String  stationName
+    Float   latitude
+    Float   longitude
     Integer elevation
-    String type
+    String  type
 
     @Override
     String toString() {

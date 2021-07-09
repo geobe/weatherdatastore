@@ -5,6 +5,8 @@ import de.geobe.architecture.persist.DbHibernate
 import org.h2.server.web.WebServer
 import org.h2.tools.Server
 
+import java.util.concurrent.TimeUnit
+
 import static de.geobe.weatherdata.PeriodicAcquisition.timeformat
 import static de.geobe.weatherdata.PeriodicAcquisition.zoneId
 
@@ -29,10 +31,12 @@ class WeatherDb {
         tcpServer = Server.createTcpServer('-baseDir', '~/H2', '-tcpAllowOthers', '-tcpDaemon')
         if (!tcpServer.isRunning(true)) {
             tcpServer.start()
+            println "tcpServer startet"
         }
-        webServer = Server.createWebServer('-baseDir', '~/H2', '-tcpAllowOthers', '-tcpDaemon')
+        webServer = Server.createWebServer('-baseDir', '~/H2', '-webAllowOthers', '-webDaemon')
         if (!webServer.isRunning(true)) {
             webServer.start()
+            println "webserver startet"
         }
     }
 
@@ -64,6 +68,10 @@ class WeatherDb {
     static void main(String[] args) {
         def weatherDb = new WeatherDb()
         def future = new PeriodicAcquisition().execute(weatherDb.dwdDataAcquisitionTask)
-//        weatherDb.fetchAndStoreDwdData()
+        def nextex = future.getDelay(TimeUnit.SECONDS)
+        def now = System.currentTimeSeconds()
+        def toex = now + nextex
+        def iToex = Instant.ofEpochSecond(toex).atZone(zoneId).format(timeformat)
+        println "next execution in ${nextex} s at $iToex"
     }
 }
