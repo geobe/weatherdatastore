@@ -4,6 +4,7 @@ package de.geobe.weatherdata
 import javax.xml.stream.XMLEventReader
 import javax.xml.stream.XMLInputFactory
 import java.time.Instant
+import java.time.format.DateTimeFormatter
 import java.util.zip.ZipInputStream
 
 class DwdXmlClient {
@@ -19,6 +20,10 @@ class DwdXmlClient {
             'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/MOSMIX_S_LATEST_240.kmz'
     static final MosmixLUrl =
             'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_L/single_stations/10577/kml/MOSMIX_L_LATEST_10577.kmz'
+    static final MosmixSBaseUrl =
+            'https://opendata.dwd.de/weather/local_forecasts/mos/MOSMIX_S/all_stations/kml/MOSMIX_S_'
+    static final MosmixTimeFormat = DateTimeFormatter.ofPattern('yyyyMMddHH')
+    static final MosmixPostfix = '_240.kmz'
 
     static final String ISSUE_TIME = 'IssueTime'
     static final String FORECAST_TIME_STEPS = 'ForecastTimeSteps'

@@ -2,13 +2,19 @@ package de.geobe.weatherdata
 
 import de.geobe.architecture.persist.DaoHibernate
 import de.geobe.architecture.persist.DbHibernate
-import org.h2.server.web.WebServer
 import org.h2.tools.Server
 
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 import static de.geobe.weatherdata.PeriodicAcquisition.timeformat
 import static de.geobe.weatherdata.PeriodicAcquisition.zoneId
+import static de.geobe.weatherdata.PeriodicAcquisition.acqPeriod
+import static de.geobe.weatherdata.PeriodicAcquisition.acqUnit
+import static de.geobe.weatherdata.PeriodicAcquisition.dwdFullHourOffset
+import static de.geobe.weatherdata.DwdXmlClient.MosmixSBaseUrl
+import static de.geobe.weatherdata.DwdXmlClient.MosmixTimeFormat
+import static de.geobe.weatherdata.DwdXmlClient.MosmixPostfix
 
 import java.time.Instant
 
@@ -19,7 +25,6 @@ class WeatherDb {
     def dwdXmlClient = new DwdXmlClient()
     def weatherDb
     DaoHibernate<DwdForecast> forecastDao
-    def startupAcquisition = true
 
     WeatherDb() {
         runServer()
@@ -44,42 +49,68 @@ class WeatherDb {
     def fetchAndStoreDwdData(def url = DwdXmlClient.MosmixSUrl, String placemark = '10577') {
         def forecasts = new DwdXmlClient().fetchWebData(url, placemark)
         def issueTime = forecasts[0].issuedAt
-        def newest = forecastDao.find('select max(issuedAt) from DwdForecast')
-        if(newest && newest[0] != issueTime) {
+        def latest = forecastDao.find('select max(issuedAt) from DwdForecast')?.first()
+        if(latest != issueTime) {
             forecasts.each {
                 forecastDao.save it
             }
             forecastDao.closeSession()
             def now = Instant.ofEpochMilli(System.currentTimeMillis()).atZone(zoneId).format(timeformat)
             println "\ndataset saved at $now"
-            true
+            [saved: true, timestamp: issueTime]
         } else {
             println '\ndataset already exists'
-            false
+            [saved: false, timestamp: latest]
         }
     }
 
     def dwdDataAcquisitionTask = new Runnable() {
         @Override
         void run() {
-            def success = fetchAndStoreDwdData()
-            if(!startupAcquisition && !success) {
+            // get the latest available dataset from dwd website
+            def result = fetchAndStoreDwdData()
+            def latestInDb = result.timestamp
+            def savedToDb = result.saved
+            def elapsed = System.currentTimeSeconds() - latestInDb
+            def period = acqUnit.toSeconds(acqPeriod)
+            if(! savedToDb && elapsed > period) {
+                // seems we are at one of the irregular provisionings of dwd data files
+                println "try again in ${acqPeriod / 2} ${acqUnit.toString().toLowerCase()}"
                 PeriodicAcquisition.retry(dwdDataAcquisitionTask)
-                println "try again in ${PeriodicAcquisition.period / 2} ${PeriodicAcquisition.unit.toString().toLowerCase()}"
             }
-            startupAcquisition = false
         }
     }
 
+    def fillupMissingDatasets() {
+        def latest = forecastDao.find('select max(issuedAt) from DwdForecast')?.first()
+        def now = System.currentTimeSeconds()
+        def periodSeconds = acqUnit.toSeconds(acqPeriod)
+        def offset = acqUnit.toSeconds(dwdFullHourOffset)
+        def missingPeriods = (now - offset - latest).intdiv(periodSeconds)
+        println "missing $missingPeriods datasets:"
+        for(int i = 1; i <= missingPeriods; i++) {
+            def url = MosmixSBaseUrl + Instant.ofEpochSecond(latest+i*periodSeconds).
+                    atZone(ZoneId.of('Z')).format(MosmixTimeFormat) + MosmixPostfix
+            println "try retrieving from $url"
+            try {
+                fetchAndStoreDwdData(url)
+                println " done"
+            } catch (IOException ex) {
+                ex.
+                println "failed: $ex"
+            }
+        }
 
+    }
 
     static void main(String[] args) {
         def weatherDb = new WeatherDb()
+        weatherDb.fillupMissingDatasets()
         def future = PeriodicAcquisition.execute(weatherDb.dwdDataAcquisitionTask)
         def nextex = future.getDelay(TimeUnit.SECONDS)
         def now = System.currentTimeSeconds()
         def toex = now + nextex
         def iToex = Instant.ofEpochSecond(toex).atZone(zoneId).format(timeformat)
-        println "next execution in ${nextex} s at $iToex"
+        println "next execution in $nextex s at $iToex"
     }
 }

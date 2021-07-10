@@ -169,13 +169,13 @@ public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
 	 * also starts a transaction, if none is active
 	 */
 	@SuppressWarnings("unchecked")
-	public List<PersistType> find(String query, Map<String, Object> params) {
+	public List find(String query, Map<String, Object> params) {
 		Session s = dbAccess.getActiveSession();
 		Query hibernateQuery = s.createQuery(query);
 		for (String pname : params.keySet()) {
 			hibernateQuery.setParameter(pname, params.get(pname));
 		}
-		List<PersistType> result = (List<PersistType>) hibernateQuery.list();
+		List result = hibernateQuery.list();
 		return result;
 	}
 
@@ -185,7 +185,7 @@ public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
 	 * @see de.geobe.architecture.persist.DataAccess#findByExample(java.lang.Object)
 	 * also starts a transaction, if none is active
 	 */
-	public List<PersistType> findByExample(PersistType sample) {
+	public List findByExample(PersistType sample) {
 		return findByExample(sample, new ArrayList<String>());
 	}
 

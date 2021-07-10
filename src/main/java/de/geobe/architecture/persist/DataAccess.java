@@ -48,7 +48,7 @@ public interface DataAccess<PersistType> {
 	 *            simple HQL query string
 	 * @return list of returned objects
 	 */
-	List<PersistType> find(String query);
+	List find(String query);
 
 	/**
 	 * executes hibernate query with parameters <br>
@@ -62,7 +62,7 @@ public interface DataAccess<PersistType> {
 	 *            and actual parameter value as value
 	 * @return list of returned objects
 	 */
-	List<PersistType> find(String query, Map<String, Object> params);
+	List find(String query, Map<String, Object> params);
 
 	/**
 	 * Query by example. Find objects that are "similar" to the sample object.<br>

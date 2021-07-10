@@ -3,7 +3,6 @@ package de.geobe.weatherdata
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
@@ -15,9 +14,9 @@ import java.util.concurrent.TimeUnit
  */
 class PeriodicAcquisition {
 
-    static long period = 60
+    static long acqPeriod = 60
     static long dwdFullHourOffset = 25
-    static TimeUnit unit = TimeUnit.MINUTES
+    static TimeUnit acqUnit = TimeUnit.MINUTES
     static timeformat = DateTimeFormatter.ofPattern("dd.MM.yy  HH.mm.ss.SSS")
     static zoneId = ZoneId.systemDefault()
 
@@ -33,27 +32,27 @@ class PeriodicAcquisition {
     }
 
     static execute(Runnable task) {
-        // calculate everything in milliseconds
-        def unitModulo =  unit.toMillis(period)
-        def now = System.currentTimeMillis()
-        def delay = (unitModulo - (now % unitModulo) + unit.toMillis(dwdFullHourOffset))%unitModulo
-        def periodMillis = unit.toMillis(period)
-        println "period: ${periodMillis / 1000}s, delay: ${delay/1000} s"
-        def future = executor.scheduleAtFixedRate(task, delay, periodMillis, TimeUnit.MILLISECONDS)
-        executor.execute(task)
+        // calculate everything in seconds
+        def unitModulo =  acqUnit.toSeconds(acqPeriod)
+        def now = System.currentTimeSeconds()
+        def delay = (unitModulo - (now % unitModulo) + acqUnit.toSeconds(dwdFullHourOffset))%unitModulo
+        def periodSeconds = acqUnit.toSeconds(acqPeriod)
+        println "period: $periodSeconds s, delay: $delay s"
+        def future = executor.scheduleAtFixedRate(task, delay, periodSeconds, TimeUnit.SECONDS)
+//        executor.execute(task)
         future
     }
 
     static retry(Runnable task) {
-        executor.schedule(task, period / 2, unit)
+        executor.schedule(task, acqPeriod.intdiv(2), acqUnit)
     }
 
     static void main(String[] args) {
         def now = System.currentTimeMillis()
-        def unitModulo =  unit.toMillis(period)
+        def unitModulo =  acqUnit.toMillis(acqPeriod)
         def future = execute(testTask)
         def pot = Instant.ofEpochMilli(now).atZone(zoneId).format(timeformat)
-        def delay = (unitModulo - (now % unitModulo) + unit.toMillis(dwdFullHourOffset))
+        def delay = (unitModulo - (now % unitModulo) + acqUnit.toMillis(dwdFullHourOffset))
         def start = Instant.ofEpochMilli(now + delay).atZone(zoneId).format(timeformat)
         println "now: $pot delay: $delay is $start"
     }
