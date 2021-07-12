@@ -13,6 +13,7 @@ import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.service.ServiceRegistry;
 
+import java.io.File;
 import java.util.List;
 
 /**
@@ -24,7 +25,7 @@ public class DbHibernate {
 
 	private static Configuration configuration;
 
-	private static SessionFactory sessionFactory;
+	private SessionFactory sessionFactory;
 
 	private Session activeSession;
 
@@ -32,7 +33,7 @@ public class DbHibernate {
 
 	/**
 	 */
-	public static void closeDatabase() {
+	public void closeDatabase() {
 		sessionFactory.close();
 	}
 
@@ -82,8 +83,16 @@ public class DbHibernate {
 	}
 
 	public DbHibernate(List<String> fqcns) {
+		this(fqcns, "");
+	}
+
+	public DbHibernate(List<String> fqcns, String resourceName ) {
 		StandardServiceRegistryBuilder serviceRegistryBuilder = new StandardServiceRegistryBuilder();
-		serviceRegistryBuilder.configure();
+		if(resourceName.equals("")) {
+			serviceRegistryBuilder.configure();
+		} else {
+			serviceRegistryBuilder.configure(resourceName);
+		}
 		ServiceRegistry serviceRegistry = serviceRegistryBuilder.build();
 		MetadataSources metadataSources = new MetadataSources(serviceRegistry);
 		fqcns.stream().forEach(metadataSources::addAnnotatedClassName);
