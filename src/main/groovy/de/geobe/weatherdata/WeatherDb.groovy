@@ -1,3 +1,29 @@
+/*
+ *  The MIT License (MIT)
+ *
+ *                            Copyright (c) 2021. Georg Beier
+ *
+ *                            Permission is hereby granted, free of charge, to any person obtaining a copy
+ *                            of this software and associated documentation files (the "Software"), to deal
+ *                            in the Software without restriction, including without limitation the rights
+ *                            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *                            copies of the Software, and to permit persons to whom the Software is
+ *                            furnished to do so, subject to the following conditions:
+ *
+ *                            The above copyright notice and this permission notice shall be included in all
+ *                            copies or substantial portions of the Software.
+ *
+ *                            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *                            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *                            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *                            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *                            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *                            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *                            SOFTWARE.
+ *
+ *
+ */
+
 package de.geobe.weatherdata
 
 import de.geobe.architecture.persist.DaoHibernate
@@ -18,14 +44,23 @@ import static de.geobe.weatherdata.DwdXmlClient.MosmixPostfix
 
 import java.time.Instant
 
+/**
+ * Main data acquisition class that reads data from German weather service (DWD)
+ * and stores it in an H2 database
+ * @author Georg Beier
+ */
 class WeatherDb {
 
     Server tcpServer
     Server webServer
-    def dwdXmlClient = new DwdXmlClient()
+//    def dwdXmlClient = new DwdXmlClient()
     def weatherDb
     DaoHibernate<DwdForecast> forecastDao
 
+    /**
+     * Default constructor starts H2 server and binds two Entity classes for DWD weather forecast records
+     * to the database using hibernate.
+     */
     WeatherDb() {
         runServer()
         weatherDb = new DbHibernate(['de.geobe.weatherdata.DwdForecast',
@@ -33,6 +68,10 @@ class WeatherDb {
         forecastDao = new DaoHibernate<DwdForecast>(DwdForecast.class, weatherDb)
     }
 
+    /**
+     * start H2 tcp and web server
+     * @return
+     */
     def runServer() {
         tcpServer = Server.createTcpServer('-baseDir', '~/H2', '-tcpAllowOthers', '-tcpDaemon')
         if (!tcpServer.isRunning(true)) {
@@ -46,6 +85,13 @@ class WeatherDb {
         }
     }
 
+    /**
+     * Read and parse weather forecast data from XML file on DWD opendata website into DwdForecast objects
+     * and store them in the database. The parsing is actually by DwdXmlClient class.
+     * @param url web location of xml file. DwdXmlClient.MosmixSUrl or DwdXmlClient.MosmixLUrl are possible values.
+     * @param placemark select the weather station for the forecast. E.g., '10577' is Chemnitz.
+     * @return map telling if data were saved and issuedAt-timestamp of most actual record
+     */
     def fetchAndStoreDwdData(def url = DwdXmlClient.MosmixSUrl, String placemark = '10577') {
         def forecasts = new DwdXmlClient().fetchWebData(url, placemark)
         def issueTime = forecasts[0].issuedAt
@@ -64,6 +110,9 @@ class WeatherDb {
         }
     }
 
+    /**
+     * Task for periodic update of weather data. MosmixS data are updated hourly, MosmixL data four times a day
+     */
     def dwdDataAcquisitionTask = new Runnable() {
         @Override
         void run() {
@@ -81,6 +130,10 @@ class WeatherDb {
         }
     }
 
+    /**
+     * Try to fill up missing datasets in the database if program was down for some time. DWD provides
+     * XML files with forecasts from the most recent 48 hours.
+     */
     def fillupMissingDatasets() {
         def latest = forecastDao.find('select max(issuedAt) from DwdForecast')?.first()
         def now = System.currentTimeSeconds()
@@ -103,6 +156,10 @@ class WeatherDb {
 
     }
 
+    /**
+     * Run program in demon mode for regular acquisition and storage of DWD weather forecasts
+     * @param args no args are evaluated
+     */
     static void main(String[] args) {
         def weatherDb = new WeatherDb()
         weatherDb.fillupMissingDatasets()

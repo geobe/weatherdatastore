@@ -1,13 +1,37 @@
-/**
- * Generic Dao interface
+/*
+ *  The MIT License (MIT)
+ *
+ *                            Copyright (c) 2021. Georg Beier
+ *
+ *                            Permission is hereby granted, free of charge, to any person obtaining a copy
+ *                            of this software and associated documentation files (the "Software"), to deal
+ *                            in the Software without restriction, including without limitation the rights
+ *                            to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ *                            copies of the Software, and to permit persons to whom the Software is
+ *                            furnished to do so, subject to the following conditions:
+ *
+ *                            The above copyright notice and this permission notice shall be included in all
+ *                            copies or substantial portions of the Software.
+ *
+ *                            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ *                            IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ *                            FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ *                            AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ *                            LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ *                            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ *                            SOFTWARE.
+ *
+ *
  */
+
 package de.geobe.architecture.persist;
 
 import java.io.Serializable;
 import java.util.*; // always good to have ;-)
 
 /**
- * @author: georg beier
+ * Generic Dao interface
+ * @author georg beier
  * 
  * @param <PersistType>
  *            Generic parameter for Dao
@@ -48,7 +72,7 @@ public interface DataAccess<PersistType> {
 	 *            simple HQL query string
 	 * @return list of returned objects
 	 */
-	List find(String query);
+	List<Object> find(String query);
 
 	/**
 	 * executes hibernate query with parameters <br>
@@ -62,12 +86,12 @@ public interface DataAccess<PersistType> {
 	 *            and actual parameter value as value
 	 * @return list of returned objects
 	 */
-	List find(String query, Map<String, Object> params);
+	List<Object> find(String query, Map<String, Object> params);
 
 	/**
 	 * Query by example. Find objects that are "similar" to the sample object.<br>
 	 * String properties are matched with <i>like</i>, so SQL wildcards (%) can
-	 * be used.
+	 * be used. Only single-valued properties are considered.
 	 * 
 	 * @param sample
 	 *            a sample object
@@ -78,7 +102,7 @@ public interface DataAccess<PersistType> {
 	/**
 	 * Query by example. Find objects that are "similar" to the sample object.<br>
 	 * String properties are matched with <i>like</i>, so SQL wildcards (%) can
-	 * be used.
+	 * be used. Only single-valued properties are considered.
 	 * 
 	 * @param sample
 	 *            a sample object
