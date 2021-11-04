@@ -34,7 +34,6 @@ import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 import static de.geobe.weatherdata.PeriodicAcquisition.periodHistory
-import static de.geobe.weatherdata.PeriodicAcquisition.periodHistory
 import static de.geobe.weatherdata.PeriodicAcquisition.timeformat
 import static de.geobe.weatherdata.PeriodicAcquisition.zoneId
 import static de.geobe.weatherdata.PeriodicAcquisition.acqPeriod
