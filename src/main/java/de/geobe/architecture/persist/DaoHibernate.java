@@ -241,7 +241,7 @@ public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
         // build a map to collect all not null attributes in sample object
         Map<String, Object> qbeValues = new HashMap<>();
         // loop over all persistent attributes
-        attributeNames.stream().forEach(attName -> {
+        attributeNames.forEach(attName -> {
             try {
                 Object val = null;
                 // direct field access possible?
@@ -260,7 +260,7 @@ public class DaoHibernate<PersistType> implements DataAccess<PersistType> {
         });
         // now we  can create a list of query predicates
         List<Predicate> predicateList = new ArrayList<>(qbeValues.size());
-        qbeValues.keySet().stream().forEach(key -> {
+        qbeValues.keySet().forEach(key -> {
             Object val = qbeValues.get(key);
             if (val instanceof String) {
                 String stval = (String) val;

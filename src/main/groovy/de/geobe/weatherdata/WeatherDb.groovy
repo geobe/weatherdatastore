@@ -33,6 +33,8 @@ import org.h2.tools.Server
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
+import static de.geobe.weatherdata.PeriodicAcquisition.periodHistory
+import static de.geobe.weatherdata.PeriodicAcquisition.periodHistory
 import static de.geobe.weatherdata.PeriodicAcquisition.timeformat
 import static de.geobe.weatherdata.PeriodicAcquisition.zoneId
 import static de.geobe.weatherdata.PeriodicAcquisition.acqPeriod
@@ -141,7 +143,11 @@ class WeatherDb {
         def offset = acqUnit.toSeconds(dwdFullHourOffset)
         def missingPeriods = (now - offset - latest).intdiv(periodSeconds)
         println "missing $missingPeriods datasets:"
-        for(int i = 1; i <= missingPeriods; i++) {
+        int i = 1
+        if(missingPeriods > periodHistory) {
+            i = missingPeriods - periodHistory
+        }
+        for(; i <= missingPeriods; i++) {
             def url = MosmixSBaseUrl + Instant.ofEpochSecond(latest+i*periodSeconds).
                     atZone(ZoneId.of('Z')).format(MosmixTimeFormat) + MosmixPostfix
             println "try retrieving from $url"

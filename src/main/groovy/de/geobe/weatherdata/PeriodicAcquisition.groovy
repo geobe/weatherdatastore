@@ -42,6 +42,7 @@ class PeriodicAcquisition {
 
     static long acqPeriod = 60
     static long dwdFullHourOffset = 25
+    static long periodHistory = 48
     static TimeUnit acqUnit = TimeUnit.MINUTES
     static timeformat = DateTimeFormatter.ofPattern("dd.MM.yy  HH.mm.ss.SSS")
     static zoneId = ZoneId.systemDefault()

@@ -117,7 +117,7 @@ public class DbHibernate {
 		}
 		ServiceRegistry serviceRegistry = serviceRegistryBuilder.build();
 		MetadataSources metadataSources = new MetadataSources(serviceRegistry);
-		fqcns.stream().forEach(metadataSources::addAnnotatedClassName);
+		fqcns.forEach(metadataSources::addAnnotatedClassName);
 		MetadataBuilder metadataBuilder = metadataSources.getMetadataBuilder();
 		Metadata metadata = metadataBuilder.build();
 		sessionFactory = metadata.buildSessionFactory();
